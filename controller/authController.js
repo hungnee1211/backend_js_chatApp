@@ -23,7 +23,7 @@ const SignUp = async (req, res) => {
         const newUser = await User.create({
             username,
             password: hashPassword,
-            displayName:`${firstName} + ${lastName}`
+            displayName:`${firstName}  ${lastName}`
         })
 
 
@@ -38,7 +38,7 @@ const SignUp = async (req, res) => {
 
 const SignIn = async (req, res) => {
 
-    const ACCESS_TOKEN_TTL = "30m"
+    const ACCESS_TOKEN_TTL = 30 * 60 * 1000
     const REFRESH_TOKEN_TTL = 60 * 60 * 24 * 14 * 1000 //14 ngay
 
     try {
@@ -75,12 +75,21 @@ const SignIn = async (req, res) => {
             httpOnly: true,
             secure: false,
             sameSite: "lax",
-            maxAge: REFRESH_TOKEN_TTL
+            maxAge: REFRESH_TOKEN_TTL,
+           
 
         })
+        
 
+         res.cookie("accessToken", accessToken, {
+            httpOnly: true,
+            secure: false,
+            sameSite: "lax",
+            maxAge: ACCESS_TOKEN_TTL
 
-        return res.status(200).json({ message: "Dang nhap thanh cong", accessToken })
+        })
+       
+        return res.status(200).json({ message: "Dang nhap thanh cong", refreshToken })
     }
     catch (error) {
         return res.status(500).json({ message: "Lỗi server " })
@@ -89,14 +98,26 @@ const SignIn = async (req, res) => {
 
 
 //dang xuat
-
 const SignOut = async (req, res) => {
-    try {
-        res.clearCookie("refreshToken")
-        return res.sendStatus(200)
-    } catch (error) {
-        res.status(500).json({ message: "Lỗi server khi đăng xuất" })
-    }
+  try {
+    res.clearCookie("accessToken", {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: true,
+      path: "/"
+    })
+
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: true,
+      path: "/"
+    })
+
+    return res.sendStatus(200)
+  } catch (error) {
+    return res.status(500).json({ message: "Lỗi server khi đăng xuất" })
+  }
 }
 
 export { SignIn, SignOut, SignUp }

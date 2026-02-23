@@ -4,12 +4,14 @@ import User from "../model/user.js"
 const authMiddleware = async (req , res , next) => {
 
     try {
-        const authHeader = req.headers.authorization
+        const authHeader = req.cookies.accessToken
     
-        if(!authHeader || !authHeader.startsWith("Bearer "))
-            return res.status(400).json({message:"Chua dang nhap"})
+        // if(!authHeader || !authHeader.startsWith("Bearer "))
+        //     return res.status(400).json({message:"Chua dang nhap"})
 
-        const token = authHeader.split(" ")[1]
+        const token = authHeader
+
+        if(!token) console.log("Chua dang nhapp")
 
         const decoded = jwt.verify(token , process.env.SECRET_TOKEN_KEY)
 

@@ -13,16 +13,12 @@ const userSchema = mongoose.Schema({
         required : true ,
         type : String 
     } ,
-    firstName : {
+    displayName : {
         required : true ,
         type: String ,
 
-    } ,
-        lastName : {
-        required : true ,
-        type: String ,
-
-    } ,
+    } 
+    ,
     avatarUrl:{
         type:String,
         default:""

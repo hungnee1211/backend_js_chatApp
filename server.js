@@ -8,6 +8,8 @@ import userRouter from './router/userRouter.js'
 import authMiddleware from './middlewares/authMiddlewares.js'
 import messageRouter from './router/messageRouter.js'
 import conversationRouter from './router/conversationRouter.js'
+import checkCookieRouter from './router/checkCookieRouter.js'
+import cookieParser from 'cookie-parser'
 
 const app = express()
 dotenv.config()
@@ -21,6 +23,7 @@ app.use(cors({
   credentials: true
 }))
 
+app.use(cookieParser())
 
 app.use(express.json())
 
@@ -30,6 +33,8 @@ app.use("/api/friend" ,authMiddleware, friendRouter)
 app.use("/api/users" , userRouter)
 app.use("/api/message" , authMiddleware ,messageRouter)
 app.use("/api/conversation" ,authMiddleware , conversationRouter)
+app.use("/api", checkCookieRouter)
+
 
 
 

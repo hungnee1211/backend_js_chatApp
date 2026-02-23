@@ -4,24 +4,33 @@ import { updateConversationAfterCreateMessage } from "../utils/messageHelper.js"
 
 const directMessage = async (req, res) => {
   try {
-    const { recipientId, content, conversationId } = req.body;
-   
+
+    const { conversationId, recipientId, content } = req.body;
     const senderId = req.user._id;
 
-    if (!content) return res.status(400).json({ message: "Thiếu nội dung" });
+    if (!content)
+      return res.status(400).json({ message: "Thiếu nội dung" });
 
-    let conversation 
+    let conversation;
 
+    // 🟢 Nếu đã có conversationId (chat đã tồn tại)
     if (conversationId) {
-      // đúng: findById hoặc findOne({ _id: conversationId })
-      conversation = await Conversation.findOne({ _id:conversationId });
-
-      console.log("run...")
+      conversation = await Conversation.findById(conversationId);
     }
 
-    if (!conversation) {
+    // 🟡 Nếu chưa có → tạo mới bằng recipient
+    if (!conversation && recipientId) {
+      conversation = await Conversation.findOne({
+        type: "direct",
+        $and: [
+          { "participants.userId": senderId },
+          { "participants.userId": recipientId }
+        ]
+      });
+    }
 
-      console.log("runnnn...")
+    // 🔴 Nếu vẫn chưa có → tạo mới
+    if (!conversation) {
       conversation = await Conversation.create({
         type: "direct",
         participants: [
@@ -31,8 +40,6 @@ const directMessage = async (req, res) => {
         lastMessageAt: new Date(),
         unreadCount: {}
       });
-
-    
     }
 
     const message = await Message.create({
@@ -41,32 +48,31 @@ const directMessage = async (req, res) => {
       content
     });
 
-    console.log("message" , message)
+    updateConversationAfterCreateMessage(
+      conversation,
+      message,
+      senderId
+    );
 
-    // nếu updateConversationAfterCreateMessage là async thì await nó
-    if (typeof updateConversationAfterCreateMessage === "function") {
-      await updateConversationAfterCreateMessage(conversation, message, senderId);
-    }
-
-    // nếu helper không cập nhật conversation trực tiếp, bạn có thể cập nhật thủ công ở đây
-    // await conversation.save();
+    await conversation.save();
 
     return res.status(200).json({ message });
+
   } catch (error) {
     console.log("Lỗi gửi tin nhắn:", error);
     return res.status(500).json({ message: "Server error" });
   }
 };
 
-
 const groupMessage = async (req, res) => {
   try {
-    const {content , conversationId} = req.body 
+    const { content, conversationId } = req.body
     const senderId = req.user._id
-
     const conversation = req.conversation
 
-    if(!content){return res.status(400).json({message:"Thiếu nội dung"})}
+    if (!content) {
+      return res.status(400).json({ message: "Thiếu nội dung" })
+    }
 
     const message = await Message.create({
       conversationId,
@@ -74,18 +80,20 @@ const groupMessage = async (req, res) => {
       content
     })
 
-    
-    updateConversationAfterCreateMessage(conversation , message , senderId)
+    updateConversationAfterCreateMessage(
+      conversation,
+      message,
+      senderId
+    )
 
     await conversation.save()
-    
-  
-    return res.status(200).json({ message });
-    
-  } catch (error) {
-    console.log("Lỗi gửi tin nhắn group:", error);
-    return res.status(500).json({ message: "Server error" });
-  }
-};
 
-export  { directMessage, groupMessage };
+    return res.status(200).json({ message })
+
+  } catch (error) {
+    console.log("Lỗi gửi tin nhắn group:", error)
+    return res.status(500).json({ message: "Server error" })
+  }
+}
+
+export { directMessage, groupMessage };
