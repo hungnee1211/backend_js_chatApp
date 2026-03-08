@@ -4,24 +4,17 @@ import Conversation from "../model/conversation.js"
 import User from "../model/user.js"
 
 
-
 const sendFriend = async (req , res) => {
     try {
-        
         const {to , message } = req.body
-
-        if(req.user._id === to) return res.status(400).json({message:"khong tu gui loi moi cho chinh minh"})
+        if(req.user._id.toString() === to.toString()) return res.status(400).json({message:"khong tu gui loi moi cho chinh minh"})
 
         const UserExist = await User.exists({_id:to})
-
         if(!UserExist) return res.status(404).json({message:"Nguoi dung khong ton tai"})
 
-        let userA = req.user._id
+        let userA = req.user._id.toString()
         let userB = to.toString()
-
-        if(userA > userB){
-            [userA , userB] = [userB , userA]
-        }
+        if(userA > userB) [userA , userB] = [userB , userA]
 
         const from = req.user._id
 
@@ -38,20 +31,27 @@ const sendFriend = async (req , res) => {
         if(alreadyFriend) return res.status(400).json({message:"Da la ban be"})
         if(existsRequest) return res.status(400).json({message:"Da ton tai loi moi ket ban"})
 
-        const request = await friendRequest.create({
+        const requestDoc = await friendRequest.create({
             from, 
-            to , 
+            to, 
             message
         })
 
-        return res.status(200).json({message:"Gui loi moi ket ban thanh cong" , request})
+        // BỔ SUNG: Populate để lấy thông tin người gửi cho Socket
+        const populatedRequest = await friendRequest.findById(requestDoc._id)
+            .populate("from", "_id username displayName avatarUrl")
+            .lean()
+
+        return res.status(200).json({
+            message: "Gui loi moi ket ban thanh cong", 
+            request: populatedRequest // Trả về object đã có thông tin user
+        })
 
     } catch (error) {
         console.log("Loi khong the gui ket ban" , error)
         return res.status(500).json({message:"Loi khong the gui ket ban"})
     }
 }
-
 
 const acceptFriendRequest = async (req , res) => {
      try {
