@@ -15,7 +15,7 @@ import userRouter from './router/userRouter.js'
 import messageRouter from './router/messageRouter.js'
 import conversationRouter from './router/conversationRouter.js'
 import checkCookieRouter from './router/checkCookieRouter.js'
-import groupRouter from './router/groupRouter.js' // << ĐÃ SỬA: Import đúng file
+import groupRouter from './router/groupRouter.js' 
 
 import authMiddleware from './middlewares/authMiddlewares.js'
 import { socketMiddlewareIo } from './middlewares/socketMiddleware.js'
@@ -24,7 +24,7 @@ dotenv.config()
 const app = express()
 const server = createServer(app)
 
-// 1. Khởi tạo Socket.io
+
 const io = new Server(server, {
   cors: {
     origin: "http://localhost:3000",
@@ -32,7 +32,7 @@ const io = new Server(server, {
   }
 })
 
-// 2. Middleware cơ bản
+
 app.use(cors({
   origin: "http://localhost:3000",
   credentials: true
@@ -40,13 +40,13 @@ app.use(cors({
 app.use(cookieParser())
 app.use(express.json())
 
-// 3. QUAN TRỌNG: Gắn io vào req TRƯỚC khi định nghĩa routes
+
 app.use((req, res, next) => {
   req.io = io;
   next();
 });
 
-// 4. Định nghĩa Routes
+
 app.use("/api/auth", authRouter)
 app.use("/api/friend", authMiddleware, friendRouter)
 app.use("/api/users", userRouter)
@@ -66,6 +66,24 @@ io.on("connection", (socket) => {
   socket.on("join-conversation", (conversationId) => {
     socket.join(conversationId)
   })
+
+
+
+  socket.on("send-friend-request", (data) => {
+    if (data.toUserId) {
+      io.to(data.toUserId).emit("friend_request_received", data);
+    }
+  });
+
+ 
+  socket.on("accept-friend-request", (data) => {
+    if (data.fromUserId) {
+      io.to(data.fromUserId).emit("friend_request_accepted", {
+        newFriend: data.friend,
+        requestId: data.requestId
+      });
+    }
+  });
 
   socket.on("send-message", async (data) => {
     const { conversationId, content, tempId } = data
