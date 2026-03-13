@@ -48,4 +48,44 @@ const getUsersByKeyword = async (req, res) => {
 }
 
 
-export {getUser , getUserDetail , getUsersByKeyword}
+const updateUser = async (req, res) => {
+  try {
+    const userId = req.user._id
+
+    const { firstName, lastName } = req.body
+
+    const updateData = {}
+
+    if (firstName) updateData.firstName = firstName
+    if (lastName) updateData.lastName = lastName
+
+   
+    if (firstName || lastName) {
+      const user = await User.findById(userId)
+
+      const newFirstName = firstName || user.firstName
+      const newLastName = lastName || user.lastName
+
+      updateData.displayName = `${newFirstName} ${newLastName}`
+    }
+
+    if (req.file) {
+      updateData.avatarUrl = `/uploads/${req.file.filename}`
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      updateData,
+      { new: true }
+    ).select("_id username firstName lastName displayName avatarUrl")
+
+    return res.status(200).json(updatedUser)
+
+  } catch (error) {
+    console.log("Lỗi update user:", error)
+    return res.status(500).json({ message: "Lỗi server" })
+  }
+}
+
+
+export {getUser , getUserDetail , getUsersByKeyword , updateUser}
