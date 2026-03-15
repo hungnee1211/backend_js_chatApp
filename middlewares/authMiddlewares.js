@@ -6,8 +6,6 @@ const authMiddleware = async (req , res , next) => {
     try {
         const authHeader = req.cookies.accessToken
     
-        // if(!authHeader || !authHeader.startsWith("Bearer "))
-        //     return res.status(400).json({message:"Chua dang nhap"})
 
         const token = authHeader
 

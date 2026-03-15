@@ -11,7 +11,7 @@ const REFRESH_COOKIE_MAXAGE = 14 * 24 * 60 * 60 * 1000;
 
 const cookieOptions = (isProduction) => ({
   httpOnly: true,
-  secure: isProduction,           // true khi production (HTTPS)
+  secure: isProduction,           
   sameSite: 'lax',
   path: '/',
 });

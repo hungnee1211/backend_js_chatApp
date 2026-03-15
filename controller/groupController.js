@@ -48,3 +48,48 @@ export const createNewGroup = async (req, res) => {
         res.status(500).json({ message: "Lỗi server khi tạo nhóm", error: error.message });
     }
 };
+
+
+
+export const addMemberGroup = async (req, res) => {
+  try {
+    const { conversationId, userId } = req.body;
+
+    const conversation = await Conversation.findById(conversationId);
+    if (!conversation) return res.status(404).json({ message: "Không tìm thấy nhóm" });
+    if (conversation.type !== "group") return res.status(400).json({ message: "Đây không phải là nhóm" });
+
+    const isExist = conversation.participants.some(p => p.userId.toString() === userId);
+    if (isExist) return res.status(400).json({ message: "Thành viên đã có trong nhóm" });
+
+    // Thêm member mới
+    conversation.participants.push({ userId, joinedAt: new Date() });
+    
+    // Cập nhật map unreadCount cho user mới (nếu schema của bạn yêu cầu)
+    if (conversation.unreadCount) {
+        conversation.unreadCount.set(userId, 0);
+    }
+
+    await conversation.save();
+
+    // Populate lại để lấy thông tin chi tiết user vừa thêm
+    const updatedConversation = await Conversation.findById(conversationId)
+      .populate("participants.userId", "displayName avatarUrl username")
+      .lean();
+
+    // --- SOCKET REAL-TIME ---
+    // 1. Thông báo cho người được thêm (họ sẽ thấy nhóm mới xuất hiện trong list)
+    req.io.to(userId).emit("new-conversation", updatedConversation);
+
+    // 2. Thông báo cho các thành viên cũ trong nhóm để họ cập nhật danh sách mem
+    updatedConversation.participants.forEach(p => {
+        if (p.userId._id.toString() !== userId) {
+            req.io.to(p.userId._id.toString()).emit("update-conversation", updatedConversation);
+        }
+    });
+
+    return res.status(200).json(updatedConversation);
+  } catch (error) {
+    return res.status(500).json({ message: "Lỗi server", error: error.message });
+  }
+};
