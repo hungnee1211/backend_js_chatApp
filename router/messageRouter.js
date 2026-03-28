@@ -1,11 +1,26 @@
 import express from "express";
-import {directMessage , groupMessage}  from "../controller/messageController.js";
-import { checkGroupMemberShip } from "../middlewares/messageMiddlewares.js";
-import  authMiddleware from "../middlewares/authMiddlewares.js";
+import authMiddleware from "../middlewares/authMiddlewares.js";
+import {
+  directMessage,
+  groupMessage,
+  getMessages,
+  markAsRead
+} from "../controller/messageController.js";
 
 const router = express.Router();
 
+router.use(authMiddleware);
+
+// gửi tin direct
 router.post("/direct", directMessage);
-router.post("/group" ,checkGroupMemberShip , groupMessage);
+
+// gửi tin group
+router.post("/group", groupMessage);
+
+// load message
+router.get("/:conversationId", getMessages);
+
+// seen
+router.patch("/:conversationId/read", markAsRead);
 
 export default router;

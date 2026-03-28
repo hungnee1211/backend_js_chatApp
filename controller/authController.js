@@ -3,15 +3,15 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import User from '../model/user.js';
 
-const ACCESS_TOKEN_TTL = '40m';
-const REFRESH_TOKEN_TTL = '14d';
+const ACCESS_TOKEN_TTL = '1h';
+const ACCESS_COOKIE_MAXAGE = 60 * 60 * 1000; // Phải là 10 giây (10,000ms)
 
-const ACCESS_COOKIE_MAXAGE = 40 * 60 * 1000;
+const REFRESH_TOKEN_TTL = '14d';
 const REFRESH_COOKIE_MAXAGE = 14 * 24 * 60 * 60 * 1000;
 
 const cookieOptions = (isProduction) => ({
   httpOnly: true,
-  secure: isProduction,           
+  secure: isProduction,
   sameSite: 'lax',
   path: '/',
 });
@@ -52,6 +52,7 @@ export const SignUp = async (req, res) => {
 };
 
 export const SignIn = async (req, res) => {
+  console.log("Giờ hiện tại của Server:", new Date().toString());
   try {
     const { username, password } = req.body;
     if (!username || !password) {
@@ -84,12 +85,14 @@ export const SignIn = async (req, res) => {
 
     res.cookie('accessToken', accessToken, {
       ...cookieOptions(isProduction),
-      maxAge: ACCESS_COOKIE_MAXAGE,
+      secure: false,
+      maxAge: ACCESS_COOKIE_MAXAGE, // Dùng maxAge thay vì expires
     });
 
     res.cookie('refreshToken', refreshToken, {
       ...cookieOptions(isProduction),
-      maxAge: REFRESH_COOKIE_MAXAGE,
+      secure: false,
+      maxAge: REFRESH_COOKIE_MAXAGE, // Dùng maxAge thay vì expires
     });
 
     return res.status(200).json({
@@ -113,4 +116,36 @@ export const SignOut = (req, res) => {
   res.clearCookie('refreshToken', cookieOptions(isProduction));
 
   return res.status(200).json({ message: 'Đăng xuất thành công' });
+};
+
+export const RefreshToken = async (req, res) => {
+  try {
+    const refreshToken = req.cookies.refreshToken;
+
+    if (!refreshToken) {
+      return res.status(401).json({ message: 'Không có Refresh Token' });
+    }
+
+    jwt.verify(refreshToken, process.env.REFRESH_TOKEN_KEY || process.env.SECRET_TOKEN_KEY, (err, decoded) => {
+      if (err) {
+        return res.status(403).json({ message: 'Refresh Token hết hạn' });
+      }
+
+      const newAccessToken = jwt.sign(
+        { userId: decoded.userId },
+        process.env.SECRET_TOKEN_KEY,
+        { expiresIn: '10s' } // Để 10s test cho nhanh
+      );
+
+      res.cookie('accessToken', newAccessToken, {
+        ...cookieOptions(isProduction),
+        secure: false, // Thêm dòng này giống SignIn để test Localhost
+        maxAge: ACCESS_COOKIE_MAXAGE, // KHÔNG GHI 10 * 1000 NỮA, HÃY DÙNG BIẾN CHUẨN (60s)
+      });
+
+      return res.status(200).json({ message: 'Auto Refresh thành công' });
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Lỗi server' });
+  }
 };

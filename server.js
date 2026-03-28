@@ -13,12 +13,13 @@ import authRouter from "./router/authRouter.js"
 import friendRouter from './router/friendRouter.js'
 import userRouter from './router/userRouter.js'
 import messageRouter from './router/messageRouter.js'
-import conversationRouter from './router/conversationRouter.js'
 import checkCookieRouter from './router/checkCookieRouter.js'
 import groupRouter from './router/groupRouter.js' 
-
+import searchRouter from './router/searchRouter.js'
+import directRouter from './router/directRouter.js'
 import authMiddleware from './middlewares/authMiddlewares.js'
 import { socketMiddlewareIo } from './middlewares/socketMiddleware.js'
+import { searchConversation } from './controller/searchController.js'
 
 dotenv.config()
 const app = express()
@@ -51,10 +52,13 @@ app.use((req, res, next) => {
 app.use("/api/auth", authRouter)
 app.use("/api/friend", authMiddleware, friendRouter)
 app.use("/api/users", userRouter)
-app.use("/api/message", authMiddleware, messageRouter)
-app.use("/api/conversation", authMiddleware, conversationRouter)
-app.use("/api/group", authMiddleware, groupRouter) // << Đã có authMiddleware
+app.use("/api/direct", directRouter);
+app.use("/api/group", groupRouter);
+app.use("/api/message", messageRouter);
+app.use("/api/conversation" , searchRouter)
 app.use("/api", checkCookieRouter)
+
+
 
 // 5. Logic Socket.io
 io.use(socketMiddlewareIo)
@@ -62,7 +66,12 @@ io.use(socketMiddlewareIo)
 io.on("connection", (socket) => {
   console.log("🟢 Socket connected:", socket.id)
   
-  socket.join(socket.userId)
+  const userId = socket.handshake.query.userId; 
+
+  if (userId) {
+    socket.join(userId); 
+    console.log(`User ${userId} đã join room cá nhân`);
+  }
 
   socket.on("join-conversation", (conversationId) => {
     socket.join(conversationId)
@@ -86,31 +95,6 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("send-message", async (data) => {
-    const { conversationId, content, tempId } = data
-    const user = await User.findById(socket.userId).select("_id displayName avatarUrl username")
-
-    const fullMessage = {
-      _id: Date.now().toString(),
-      conversationId,
-      content,
-      senderId: socket.userId,
-      createdAt: new Date(),
-      temp: false,
-      tempId,
-      senderInfor: {
-        _id: user._id,
-        displayName: user.displayName,
-        avatarUrl: user.avatarUrl,
-        username: user.username
-      }
-    }
-
-    io.to(conversationId).emit("receive-message", fullMessage)
-    io.to(conversationId).emit("last-message", { conversationId, message: fullMessage })
-  })
-
-  // Các event friend request giữ nguyên...
   socket.on("disconnect", () => console.log("❌ User disconnected"))
 })
 
