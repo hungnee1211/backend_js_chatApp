@@ -78,64 +78,55 @@ const sendFriend = async (req, res) => {
 const acceptFriendRequest = async (req, res) => {
     try {
         const { requestId } = req.params;
-        const userId = req.user._id;
+        const userId = req.user._id; // Đây là người B (người chấp nhận)
 
         const request = await FriendRequest.findById(requestId);
+        if (!request) return res.status(404).json({ message: "Không tồn tại request" });
 
-        if (!request) {
-            return res.status(404).json({ message: "Không tồn tại request" });
-        }
-
-        if (request.to.toString() !== userId.toString()) {
-            return res.status(403).json({ message: "Không có quyền" });
-        }
-
-        // ✅ tạo friend
-        await Friend.create({
-            userA: request.from,
-            userB: request.to
-        });
-
-        // ✅ xóa request
+        // ... (Giữ nguyên logic tạo Friend và xóa Request của bạn) ...
+        await Friend.create({ userA: request.from, userB: request.to });
         await FriendRequest.findByIdAndDelete(requestId);
 
-        // 🔑 directKey
-        const directKey = [request.from.toString(), request.to.toString()]
-            .sort()
-            .join("_");
-
-        // ✅ tìm hoặc tạo conversation
+        const directKey = [request.from.toString(), request.to.toString()].sort().join("_");
         let conversation = await DirectConversation.findOne({ directKey });
 
         if (!conversation) {
             conversation = await DirectConversation.create({
                 directKey,
-                participants: [
-                    { userId: request.from },
-                    { userId: request.to }
-                ],
+                participants: [{ userId: request.from }, { userId: request.to }],
                 lastMessageAt: new Date(),
-                hiddenBy: [] // 👈 đảm bảo không bị ẩn
+                hiddenBy: []
             });
         }
 
-        // 🔥 populate FULL để gửi về FE
+        // Populated dữ liệu đầy đủ
         const fullConversation = await DirectConversation.findById(conversation._id)
-            .populate("participants.userId", "username displayName avatarUrl")
+            .populate("participants.userId", "_id username displayName avatarUrl")
             .lean();
 
-       
+        // --- PHẦN QUAN TRỌNG: GỬI DỮ LIỆU ĐÃ ĐỊNH DẠNG ---
 
-        req.io.to(request.from.toString()).emit("new-conversation", fullConversation);
+        // Lấy thông tin 2 người dùng từ participants
+        const userFrom = fullConversation.participants.find(p => p.userId._id.toString() === request.from.toString())?.userId;
+        const userTo = fullConversation.participants.find(p => p.userId._id.toString() === request.to.toString())?.userId;
 
-        // 👉 user B
-        req.io.to(request.to.toString()).emit("new-conversation", fullConversation);
+        // Gửi cho người A (người gửi lời mời ban đầu)
+        // Với A, "user" hiển thị trên card sẽ là người B (userTo)
+        req.io.to(request.from.toString()).emit("new-conversation", {
+            ...fullConversation,
+            user: userTo 
+        });
 
-        // =========================
+        // Gửi cho người B (người vừa bấm chấp nhận)
+        // Với B, "user" hiển thị trên card sẽ là người A (userFrom)
+        req.io.to(request.to.toString()).emit("new-conversation", {
+            ...fullConversation,
+            user: userFrom
+        });
 
         return res.status(200).json({
             message: "Chấp nhận kết bạn thành công",
-            conversation: fullConversation
+            conversation: { ...fullConversation, user: userFrom }
         });
 
     } catch (error) {
