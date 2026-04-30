@@ -98,6 +98,11 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => console.log("❌ User disconnected"))
 })
 
+
+app.get("/", (req, res) => {
+  res.send("Backend is running 🚀");
+});
+
 const PORT = process.env.PORT || 5001
 server.listen(PORT, () => {
   ConnectDB()
