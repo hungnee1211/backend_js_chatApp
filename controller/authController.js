@@ -105,6 +105,8 @@ export const SignIn = async (req, res) => {
     });
 
     res.redirect('https://nextjs-frontend-chat-app.vercel.app');
+
+    return
     
   } catch (error) {
     console.error(error);
