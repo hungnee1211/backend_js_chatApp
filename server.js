@@ -36,7 +36,8 @@ const io = new Server(server, {
 
 app.use(cors({
   origin: "https://nextjs-frontend-chat-app.vercel.app",
-  credentials: true
+  credentials: true,
+  methods:["POST" , "GET" , "PATH", "PUT","DELETE"]
 }))
 app.use(cookieParser())
 app.use(express.json())
