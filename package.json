@@ -1,12 +1,12 @@
-{ 
-  "name":"chat-app",
+{
+  "name": "chat-app",
   "type": "module",
   "version": "1.0.0",
   "license": "MIT",
   "scripts": {
     "dev": "nodemon server.js",
     "main": "nodemon server.js",
-    "build":"node server.js",
+    "build": "node server.js",
     "start": "node server.js"
   },
   "dependencies": {
