@@ -95,7 +95,7 @@ export const SignIn = async (req, res) => {
       maxAge: REFRESH_COOKIE_MAXAGE, // Dùng maxAge thay vì expires
     });
 
-    return res.status(200).json({
+    res.status(200).json({
       message: 'Đăng nhập thành công',
       user: {
         id: user._id,
@@ -103,6 +103,8 @@ export const SignIn = async (req, res) => {
         displayName: user.displayName,
       },
     });
+    res.redirect('https://chatapp-71cs.onrender.com');
+    
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Lỗi server' });
