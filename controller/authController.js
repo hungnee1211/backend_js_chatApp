@@ -95,7 +95,7 @@ export const SignIn = async (req, res) => {
       maxAge: REFRESH_COOKIE_MAXAGE, // Dùng maxAge thay vì expires
     });
 
-    res.status(200).json({
+    return res.status(200).json({
       message: 'Đăng nhập thành công',
       user: {
         id: user._id,
@@ -104,9 +104,7 @@ export const SignIn = async (req, res) => {
       },
     });
 
-    res.redirect('https://nextjs-frontend-chat-app.vercel.app');
-
-    return
+    
     
   } catch (error) {
     console.error(error);
