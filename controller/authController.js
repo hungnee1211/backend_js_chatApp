@@ -103,7 +103,8 @@ export const SignIn = async (req, res) => {
         displayName: user.displayName,
       },
     });
-    res.redirect('https://chatapp-71cs.onrender.com');
+
+    res.redirect('https://nextjs-frontend-chat-app.vercel.app');
     
   } catch (error) {
     console.error(error);
