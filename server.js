@@ -25,20 +25,45 @@ dotenv.config()
 const app = express()
 const server = createServer(app)
 
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://nextjs-frontend-chat-app.vercel.app"
+];
+
 
 const io = new Server(server, {
   cors: {
-    origin: "https://nextjs-frontend-chat-app.vercel.app",
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Socket CORS blocked"));
+      }
+    },
     credentials: true
   }
-})
+});
 
 
-app.use(cors({
-  origin: "https://nextjs-frontend-chat-app.vercel.app",
-  credentials: true,
-  methods:["POST" , "GET" , "PATH", "PUT","DELETE"]
-}))
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"]
+  })
+);
+
 app.use(cookieParser())
 app.use(express.json())
 app.use("/uploads", express.static("uploads"))
