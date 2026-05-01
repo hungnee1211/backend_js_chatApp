@@ -84,15 +84,19 @@ export const SignIn = async (req, res) => {
     const isProduction = process.env.NODE_ENV === 'production';
 
     res.cookie('accessToken', accessToken, {
-      ...cookieOptions(isProduction),
-      secure: false,
-      maxAge: ACCESS_COOKIE_MAXAGE, // Dùng maxAge thay vì expires
+      httpOnly: true,
+      secure: isProduction, 
+      sameSite: isProduction ? 'none' : 'lax',
+      path: '/',
+      maxAge: ACCESS_COOKIE_MAXAGE,
     });
 
     res.cookie('refreshToken', refreshToken, {
-      ...cookieOptions(isProduction),
-      secure: false,
-      maxAge: REFRESH_COOKIE_MAXAGE, // Dùng maxAge thay vì expires
+      httpOnly: true,
+      secure: isProduction, 
+      sameSite: isProduction ? 'none' : 'lax',
+      path: '/',
+      maxAge: REFRESH_COOKIE_MAXAGE,
     });
 
     return res.status(200).json({
@@ -104,8 +108,8 @@ export const SignIn = async (req, res) => {
       },
     });
 
-    
-    
+
+
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Lỗi server' });
