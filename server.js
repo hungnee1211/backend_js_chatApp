@@ -19,7 +19,7 @@ import searchRouter from './router/searchRouter.js'
 import directRouter from './router/directRouter.js'
 import authMiddleware from './middlewares/authMiddlewares.js'
 import { socketMiddlewareIo } from './middlewares/socketMiddleware.js'
-import { searchConversation } from './controller/searchController.js'
+
 
 dotenv.config()
 const app = express()
